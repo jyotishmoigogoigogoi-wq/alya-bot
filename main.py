@@ -57,6 +57,8 @@ async def init_db_pool():
     logger.info("Database pool created")
 
 async def get_db():
+    if db_pool is None:
+        raise RuntimeError("Database pool not initialized")
     return db_pool
 
 # ============== SECURITY PATTERNS (FROM MAIN1) ==============
@@ -194,7 +196,7 @@ def get_routine_context():
     # Special Monday temple time
     if day == "Monday" and (hour == 9 and minute < 15):
         activity = "You are at the temple with your mother. You will be back by 9:15 AM. If someone messages, tell them you're in the temple and will reply after 15 minutes."
-    elif day == "Monday" and (hour == 9 and minute >= 15) and (hour == 9 and minute < 30):
+    elif day == "Monday" and hour == 9 and 15 <= minute < 30:
         activity = "You just returned from the temple and are now getting ready for college."
     else:
         # Generic routine based on day and time
@@ -526,7 +528,7 @@ async def send_expiry_reminder_if_needed(user_id: int, context: ContextTypes.DEF
             except Exception as e:
                 logger.warning(f"Failed to send expiry reminder to {user_id}: {e}")
 
-async def can_send_message(user_id: int) -> (bool, int, str):
+async def can_send_message(user_id: int) -> (tuple):
     """Return (allowed, limit, message_if_blocked)"""
     if await is_owner(user_id) or await is_admin(user_id):
         return True, 0, ""
@@ -1184,7 +1186,8 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not msg or not u:
         return
-
+    await upsert_user(u)
+    
     if await is_blocked(u.id):
         return
 
@@ -1399,7 +1402,7 @@ async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if user_text.lower() == "done":
             m = COLLECTING_MODE.pop(u.id, None)
-            await msg.reply_text(f"✅ {m} collection done!")
+            await msg.reply_text(f"✅ {m or 'Collection'} mode ended!")
             return
 
         if mode == "pic":
@@ -1626,12 +1629,14 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         remaining = expiry_ist - now_ist
         days_left = remaining.days
         hours_left = remaining.seconds // 3600
-        if days_left > 0:
-            expiry_text = f"⏳ {days_left} days, {hours_left} hrs left"
-        elif hours_left > 0:
-            expiry_text = f"⏳ {hours_left} hours left"
-        else:
-            expiry_text = "⚠️ Expires today!"
+        if remaining.total_seconds() <= 0:
+    expiry_text = "⚠️ Already expired!"
+    elif days_left > 0:
+    expiry_text = f"⏳ {days_left} days, {hours_left} hrs left"
+    elif hours_left > 0:
+    expiry_text = f"⏳ {hours_left} hours left"
+    else:
+    expiry_text = "⚠️ Expires today!"
         expiry_date = expiry_ist.strftime("%d %b %Y, %I:%M %p")
         expiry_status = f"📅 {expiry_date}\n{expiry_text}"
     else:
@@ -1647,9 +1652,9 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     plan_emoji = {'free': '🆓', 'weekly': '⚡', 'monthly': '💎', 'yearly': '👑'}.get(plan['plan_type'], '📱')
 
     text = f"""
-╔════════════════════
-║   💎 YOUR PROFILE     ║
-╚════════════════════
+╔════════════════════╗
+║   💎 YOUR PROFILE  ║
+╚════════════════════╝
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
 📊 **PLAN DETAILS**
@@ -1728,7 +1733,7 @@ async def main():
     ))
 
     shutdown_event = asyncio.Event()
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     for sig in (signal.SIGINT, signal.SIGTERM):
         loop.add_signal_handler(sig, shutdown_event.set)
 

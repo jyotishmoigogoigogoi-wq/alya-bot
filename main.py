@@ -962,7 +962,7 @@ async def listapi_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             masked = r['api_key'][:6] + "•••" + r['api_key'][-4:] if len(r['api_key']) > 15 else "••••••••"
             status_emoji = "⚡️" if r['is_active'] else "💤"
             status_text = "ACTIVE" if r['is_active'] else "DISABLED"
-            disabled = f" (disabled until {r['disabled_until'].astimezone(timezone(timedelta(hours=5,30))).strftime('%H:%M')})" if r['disabled_until'] and r['disabled_until'] > datetime.now(timezone.utc) else ""
+            disabled = f" (disabled until {r['disabled_until'].astimezone(timezone(timedelta(hours=5, minutes=30))).strftime('%H:%M')})" if r['disabled_until'] and r['disabled_until'] > datetime.now(timezone.utc) else ""
             message += f"[ID: {r['id']}] {status_emoji} **{status_text}**{disabled}\n"
             message += f"├─ Provider: **{r['provider'].title()}**\n"
             message += f"├─ Model: `{r['model']}`\n"

@@ -1630,13 +1630,13 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         days_left = remaining.days
         hours_left = remaining.seconds // 3600
         if remaining.total_seconds() <= 0:
-    expiry_text = "⚠️ Already expired!"
-    elif days_left > 0:
-    expiry_text = f"⏳ {days_left} days, {hours_left} hrs left"
-    elif hours_left > 0:
-    expiry_text = f"⏳ {hours_left} hours left"
-    else:
-    expiry_text = "⚠️ Expires today!"
+            expiry_text = "⚠️ Already expired!"
+        elif days_left > 0:
+            expiry_text = f"⏳ {days_left} days, {hours_left} hrs left"
+        elif hours_left > 0:
+            expiry_text = f"⏳ {hours_left} hours left"
+        else:
+            expiry_text = "⚠️ Expires today!"
         expiry_date = expiry_ist.strftime("%d %b %Y, %I:%M %p")
         expiry_status = f"📅 {expiry_date}\n{expiry_text}"
     else:
